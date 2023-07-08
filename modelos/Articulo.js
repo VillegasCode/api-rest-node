@@ -19,5 +19,5 @@ const ArticuloSchema = Schema({
     }
 });
 
-module.exports = model("Artículo", ArticuloSchema, "articulos");
+module.exports = model("Articulo", ArticuloSchema, "articulos");
                         // articulos
