@@ -1,4 +1,5 @@
-const validator = require("validator");
+const fs = require("fs");
+const {validarArticulo} = require("../helpers/validar");
 const Articulo = require("../modelos/Articulo");
 
 const prueba = (req, res) => {
@@ -25,6 +26,7 @@ const curso = (req, res) => {
     ]);
 };
 
+
 const crear = (req, res) => {
 
     //RECOGER PARÁMETROS POR POST A GUARDAR
@@ -32,16 +34,7 @@ const crear = (req, res) => {
 
     //VALIDAR DATOS
     try {
-        let validar_titulo = !validator.isEmpty(parametros.titulo) &&
-            validator.isLength(parametros.titulo, { min: 2, max: undefined });
-
-        let validar_contenido = !validator.isEmpty(parametros.contenido);
-
-        if (!validar_titulo || !validar_contenido) {
-            console.log("Entró a MongooseERROR");
-            throw new Error("No se ha validado la información!!");
-        }
-
+        validarArticulo(parametros);
     } catch (error) {
         return res.status(400).json({
             status: "error",
@@ -51,39 +44,6 @@ const crear = (req, res) => {
 
     //CREAR EL OBJETO A GUARDAR
     const articulo = new Articulo(parametros);
-
-    //ASIGNAR VALORES A OBJETOS BASADO EN EL MODELO (MANUAL O AUTOMÁTICO)
-    //ESTO SE USA PARA GUARDAR UN PARÁMETRO MANUALMENTE
-    //articulo.titulo = parametros.titulo;
-
-//LA NUEVA FORMA EN MONGODB 6.0.7 en vez de usar callbacks se usa PROMESAS .then o .catch
-// Para solucionar este problema, puedes reemplazar el uso de callbacks por promesas o funciones async/await en tus llamadas a save() y find(). Por ejemplo, en lugar de hacer lo siguiente:
-
-// miModelo.save(function (err, resultado) {
-//   if (err) {
-//     console.error(err);
-//   } else {
-//     console.log(resultado);
-//   }
-// });
-// Puedes hacer lo siguiente, utilizando promesas:
-
-// miModelo.save()
-//   .then(function (resultado) => {
-//     console.log(resultado);
-//   })
-//   .catch(function (err) => {
-//     console.error(err);
-//   });
-// O utilizando async/await:
-
-// try {
-//   const resultado = await miModelo.save();
-//   console.log(resultado);
-// } catch (err) {
-//   console.error(err);
-// }
-
 
     //GUARDAR EL ARTÍCULO EN LA BASE DE DATOS
     console.log("Justo antes de guardar");
@@ -159,7 +119,105 @@ const uno = (req, res) => {
         })
 };
 
+const borrar = (req, res) => {
+
+    let articulo_id = req.params.id;
+    Articulo.findOneAndDelete({_id: articulo_id})
+        .then((articuloBorrado) => {
+            //Devolver borrado exitosamente
+            return res.status(200).json({
+                status: "Success",
+                articulo: articuloBorrado,
+                mensaje: "Método borrar ejecutado exitosamente"
+            });
+        })
+        .catch((error) => {
+            return res.status(500).json({
+                status: "error",
+                mensaje: "Error al borrar el artículo"
+            });
+        })
+
+};
+
+const editar = (req, res) => {
+
+    let articulo_id = req.params.id;
+
+    //RECOGER PARÁMETROS DE TÍTULO Y CONTENIDO POR POST A GUARDAR
+    let parametros = req.body;
+
+    //VALIDAR DATOS
+    try{
+        validarArticulo(parametros);
+    }
+    catch (error) {
+        return res.status(400).json({
+            status: "error",
+            mensaje: "Faltan datos por enviar"
+        });
+    }
+
+    //Buscar y Actualizar artículo por ID
+    Articulo.findOneAndUpdate({_id: articulo_id}, req.body, {new: true})
+        .then ((articuloActualizado) => {
+            return res.status(200).json ({
+                status: "Success",
+                articulo: articuloActualizado,
+                mensaje: "Articulo actualizado con éxito"
+            })
+        })
+        .catch ((error) => {
+            return res.status(500).json({
+                status: "Error",
+                mensaje: "Error al actualizar"
+            })
+        });
+}
+
+
+const subir = (req, res) => {
+
+    //Recoger el fichero de imagen subido
+    if (!req.file || !req.files){
+        return res.status(404).json({
+            status: "error",
+            mensaje: "Petición inválida"
+        });
+    }
+
+    //Nombre del archivo
+    let archivo = req.file.originalname;
+
+    //Extensión del archivo
+    let archivo_split = archivo.split("\.");
+    let archivo_extension = archivo_split[1];
+
+    //Comprobar extensión correcta
+    if(archivo_extension != "png" && archivo_extension != "jpg" &&
+    archivo_extension != "jpeg" && archivo_extension != "gif" && archivo_extension != "JPG"){
+
+            //Borrar archivo y dar respuesta
+            fs.unlink(req.file.path, (error) => {
+                return res.status(400).json({
+                    status: "error",
+                    mensaje: "Imagen inválida"
+                });
+            })
+        } else {
+            //Devolver respuesta
+        return res.status(200).json({
+            status: "Success",
+            archivo_split,
+            archivo_extension,
+            files: req.file
+        })
+    }
+
+    //Si todo va bien, actualizar el artículo
+
+}
 
 module.exports = {
-    prueba, curso, crear, listar, uno
+    prueba, curso, crear, listar, uno, borrar, editar, subir
 }
