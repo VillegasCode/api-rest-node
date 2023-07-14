@@ -179,7 +179,7 @@ const editar = (req, res) => {
 const subir = (req, res) => {
 
     //Recoger el fichero de imagen subido
-    if (!req.file || !req.files){
+    if (!req.file && !req.files){
         return res.status(404).json({
             status: "error",
             mensaje: "Petición inválida"
@@ -206,16 +206,25 @@ const subir = (req, res) => {
             })
         } else {
             //Devolver respuesta
-        return res.status(200).json({
-            status: "Success",
-            archivo_split,
-            archivo_extension,
-            files: req.file
+            //Si todo va bien, actualizar el artículo
+    let articulo_id = req.params.id;
+
+    //Buscar y Actualizar artículo por ID
+    Articulo.findOneAndUpdate({_id: articulo_id}, {imagen: req.file.filename}, {new: true})
+        .then ((articuloActualizado) => {
+            return res.status(200).json({
+                status: "Success",
+                mensaje: "Imagen subida con éxito",
+                file: req.file
+            })
         })
-    }
-
-    //Si todo va bien, actualizar el artículo
-
+        .catch ((error) => {
+            return res.status(500).json({
+                status: "Error",
+                mensaje: "Error al actualizar"
+            })
+        });
+    };
 }
 
 module.exports = {
