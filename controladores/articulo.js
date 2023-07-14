@@ -1,6 +1,8 @@
 const fs = require("fs");
+const path = require("path");
 const {validarArticulo} = require("../helpers/validar");
 const Articulo = require("../modelos/Articulo");
+const { error } = require("console");
 
 const prueba = (req, res) => {
     console.log("Se ha ejecutado el endpoint ruta-de-prueba");
@@ -227,6 +229,60 @@ const subir = (req, res) => {
     };
 }
 
+const imagen = (req, res) => {
+    let fichero = req.params.fichero;
+    let ruta_fisica = "./imagenes/articulos/" + fichero;
+
+    fs.stat(ruta_fisica, (error, existe) => {
+        if (existe) {
+            return res.sendFile(path.resolve(ruta_fisica));
+        } else {
+            return res.status(404).json({
+                status: "error",
+                mensaje: "La imagen no existe",
+                existe,
+                fichero,
+                ruta_fisica
+            });
+        }
+    })
+}
+
+
+const buscador = (req, res) => {
+
+    let busqueda = req.params.busqueda;
+
+    //Find $OR
+    Articulo.find({ "$or": [
+        {"titulo": { "$regex": busqueda, "$options": "i"}},
+        {"contenido": { "$regex": busqueda, "$options": "i"}},
+    ]})
+    .sort({fecha: -1})
+        .then((articulosEncontrados) => {
+            console.log("SUCCESS en .then");
+            if (articulosEncontrados.length <= 0 || !articulosEncontrados) {
+                return res.status(404).json({
+                    status: "error",
+                    mensaje: "No se han encontrado artículos",
+                });
+            } else {
+                return res.status(200).json({
+                    status: "Success",
+                    articulos: articulosEncontrados
+                })
+            }
+        })
+        .catch((error) => {
+            console.log("ENTRÓ en .catch");
+                return res.status(404).json({
+                    status: "error",
+                    mensaje: "Error de conexión o Ingrese parámetros válidos",
+                });
+        })
+}
+
 module.exports = {
-    prueba, curso, crear, listar, uno, borrar, editar, subir
+    prueba, curso, crear, listar, uno, borrar, editar, subir,
+    imagen, buscador
 }
