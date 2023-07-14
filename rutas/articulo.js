@@ -39,4 +39,11 @@ router.put("/articulo/:id", ArticuloControlador.editar);
 //SUBIR IMAGEN con MIDLEWARE entre corchetes
 router.post("/subir-imagen/:id", [subidas.single("file0")], ArticuloControlador.subir);
 
+//Mostrar una imagen de la BD al FrontEnd
+router.get("/imagen/:fichero", ArticuloControlador.imagen);
+
+//Buscar artículos por TÍTULO o CONTENIDO
+router.get("/buscar/:busqueda", ArticuloControlador.buscador);
+router.get("/buscar/", ArticuloControlador.buscador);
+
 module.exports = router;
